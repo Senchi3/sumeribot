@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "name": "sumeribot",
+  "description": "An XP and Leveling Discord Bot written in Discord.js.",
+  "version": "1.0.0",
+  "main": "bot.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "a"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/senchi3/sumeribot.git"
+  },
+  "keywords": [
+    "bot",
+    "discord",
+    "xp"
+  ],
+  "author": "senchi3",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/senchi3/sumeribot/issues"
+  },
+  "homepage": "https://github.com/senchi3/sumeribot#readme"
+}
