@@ -4,6 +4,32 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
 
+// Prepare sqlite3
+
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('db/users.sqlite', (err) => {
+	if (err) {
+		console.error(err.message);
+	}
+	console.log('Connected to the users database.');
+});
+
+db.serialize(() => {
+	db.each(`SELECT * FROM users;`, (err, row) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log(`${row.id} - ${row.username} [${row.xp}]`);
+  });
+});
+
+db.close((err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Close the database connection.');
+});
+
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -65,7 +91,7 @@ client.login(token);
 
 // Check every minute
 
-function getVoiceChannelUsers(){
+function getVoiceChannelUsers() {
 	console.log('Voice channels have been checked.');
 }
 
@@ -75,4 +101,4 @@ getVoiceChannelUsers();
 
 // Check every 60 seconds
 
-setInterval(getVoiceChannelUsers, 60*1000);
+setInterval(getVoiceChannelUsers, 60 * 1000);

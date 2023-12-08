@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.14.1",
+    "sqlite3": "^5.1.6"
   },
   "name": "sumeribot",
   "description": "An XP and Leveling Discord Bot written in Discord.js.",
   "version": "1.0.0",
   "main": "index.js",
-  "devDependencies": {},
   "scripts": {
     "test": "a"
   },
