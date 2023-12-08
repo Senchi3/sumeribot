@@ -128,4 +128,5 @@ dist
 
 config.json
 config/config.json
-settings.sqlite3
+config.sqlite3
+db

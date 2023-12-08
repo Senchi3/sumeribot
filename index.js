@@ -62,3 +62,17 @@ client.once(Events.ClientReady, readyClient => {
 
 // Log in to Discord with your client's token
 client.login(token);
+
+// Check every minute
+
+function getVoiceChannelUsers(){
+	console.log('Voice channels have been checked.');
+}
+
+// Check once in start
+
+getVoiceChannelUsers();
+
+// Check every 60 seconds
+
+setInterval(getVoiceChannelUsers, 60*1000);
