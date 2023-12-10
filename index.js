@@ -3,17 +3,31 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
-const readline = require('readline');
 
 // Prepare sqlite3
-const sqlite3 = require('sqlite3').verbose();
 
-// Open users.sqlite
+const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('db/users.sqlite', (err) => {
 	if (err) {
 		console.error(err.message);
 	}
 	console.log('Connected to the users database.');
+});
+
+db.serialize(() => {
+	db.each(`SELECT * FROM users;`, (err, row) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log(`${row.id} - ${row.username} [${row.xp}]`);
+  });
+});
+
+db.close((err) => {
+  if (err) {
+    console.error(err.message);
+  }
+  console.log('Close the database connection.');
 });
 
 // Create a new client instance
@@ -81,55 +95,10 @@ function getVoiceChannelUsers() {
 	console.log('Voice channels have been checked.');
 }
 
-// Wait 10 seconds, then run every 60 seconds
+// Check once in start
 
-setTimeout(() => {
-	setInterval(getVoiceChannelUsers, 60 * 1000);
-	console.log(client.isReady());
-}, 10 * 1000);
+getVoiceChannelUsers();
 
+// Check every 60 seconds
 
-/// Shortcuts
-
-
-// Prepare reading keys
-readline.emitKeypressEvents(process.stdin);
-
-if (process.stdin.isTTY)
-	process.stdin.setRawMode(true);
-
-console.log('Press P to print the SQL database. Press Q to close the SQL database. Press ESC to stop the bot.');
-
-process.stdin.on('keypress', (chunk, key) => {
-	// Test users.sqlite
-	if (key && key.name == 'p') {
-		db.serialize(() => {
-			db.each(`SELECT * FROM users;`, (err, row) => {
-				if (err) {
-					console.error(err.message);
-				}
-				console.log(`${row.id} - ${row.username} [${row.xp}]`);
-			});
-		});
-	}
-	// Closing the SQL database
-	if (key && key.name == 'q') {
-		db.close((err) => {
-			if (err) {
-				console.error(err.message);
-			}
-			console.log('Closed the database connection.');
-		});
-	}
-	// Stopping the bot
-	if (key && key.name == 'escape') {
-		db.close((err) => {
-			if (err) {
-				console.error(err.message);
-			}
-			console.log('Closed the database connection.');
-		});
-		console.log('Bye-bye!');
-		process.exit();
-	}
-});
+setInterval(getVoiceChannelUsers, 60 * 1000);
