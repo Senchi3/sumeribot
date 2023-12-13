@@ -70,10 +70,8 @@ process.stdin.on('keypress', async (chunk, key) => {
     // Add XP to user
     if (key && key.name == 'a') {
         rl.question('Please enter the user\'s ID: ', async (id) => {
-            let currentXp;
-            await db.get(`SELECT xp FROM users WHERE id = ${id}`, await function (err, row) {
-                currentXp = row;
-            });
+            const row = db.get(`SELECT xp FROM users WHERE id = (?)`, id);
+            const currentXp = row.xp;
             console.log(`DEBUG: currentXp value is ${currentXp}`);
             rl.question('Please enter the amount of XP to be added: ', (xp) => {
                 console.log(`DEBUG: Sum of currentXp and xp to be added is ${toString(parseInt(currentXp) + parseInt(xp))}`);
