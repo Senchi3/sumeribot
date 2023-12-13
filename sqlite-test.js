@@ -45,7 +45,7 @@ if (process.stdin.isTTY)
 
 console.log('Press P to print the SQL database. Press ESC to stop the bot.');
 
-process.stdin.on('keypress', (chunk, key) => {
+process.stdin.on('keypress', async (chunk, key) => {
     // Test users.sqlite
     if (key && key.name == 'p') {
         db.serialize(() => {
@@ -69,9 +69,9 @@ process.stdin.on('keypress', (chunk, key) => {
     }
     // Add XP to user
     if (key && key.name == 'a') {
-        rl.question('Please enter the user\'s ID: ', (id) => {
+        rl.question('Please enter the user\'s ID: ', async (id) => {
             let currentXp;
-            db.get(`SELECT xp FROM users WHERE id = ${id}`, function(err, row){
+            await db.get(`SELECT xp FROM users WHERE id = ${id}`, await function (err, row) {
                 currentXp = row;
             });
             console.log(`DEBUG: currentXp value is ${currentXp}`);
