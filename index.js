@@ -75,6 +75,11 @@ client.login(token);
 
 // TODO: Insert all users to database when bot joins the server
 
+client.on(Events.GuildCreate, async (guild) => {
+	console.log(guild.members);
+	// await sqliteHandler.insertRow()
+})
+
 
 // TODO: Insert new users when they join the server
 
