@@ -4,17 +4,11 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
 const readline = require('readline');
+const sqliteHandler = require('./sqlite-handler.js');
 
-// Prepare sqlite3
-const sqlite3 = require('sqlite3').verbose();
 
-// Open users.sqlite
-const db = new sqlite3.Database('db/users.sqlite', (err) => {
-	if (err) {
-		console.error(err.message);
-	}
-	console.log('Connected to the users database.');
-});
+
+
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -75,6 +69,17 @@ client.once(Events.ClientReady, readyClient => {
 // Log in to Discord with your client's token
 client.login(token);
 
+
+
+
+/// UI
+
+// Prepare readline interface
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
 // Check every minute
 
 function getVoiceChannelUsers() {
@@ -85,7 +90,6 @@ function getVoiceChannelUsers() {
 
 setTimeout(() => {
 	setInterval(getVoiceChannelUsers, 60 * 1000);
-	console.log(client.isReady());
 }, 10 * 1000);
 
 
@@ -98,38 +102,34 @@ readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY)
 	process.stdin.setRawMode(true);
 
-console.log('Press P to print the SQL database. Press Q to close the SQL database. Press ESC to stop the bot.');
+console.log('Press ESC to stop the bot.\nCommands available: printDatabase, insertRow, addXp');
 
-process.stdin.on('keypress', (chunk, key) => {
-	// Test users.sqlite
+process.stdin.on('keypress', async (chunk, key) => {
+	
 	if (key && key.name == 'p') {
-		db.serialize(() => {
-			db.each(`SELECT * FROM users;`, (err, row) => {
-				if (err) {
-					console.error(err.message);
-				}
-				console.log(`${row.id} - ${row.username} [${row.xp}]`);
-			});
-		});
+		await sqliteHandler.printDatabase();
 	}
-	// Closing the SQL database
-	if (key && key.name == 'q') {
-		db.close((err) => {
-			if (err) {
-				console.error(err.message);
-			}
-			console.log('Closed the database connection.');
-		});
+	
+	if (key && key.name == 'i') {
+		rl.question(`User to be inserted - ID: `, async (id) => {
+			rl.question(`User to be inserted - username: `, async (username) => {
+				await sqliteHandler.insertRow(id, username);
+			})
+		})
 	}
+
+	if (key && key.name == 'a') {
+		rl.question(`ID of user to add XP to: `, async (id) => {
+			rl.question(`Amount of XP to add: `, async (xp) => {
+				await sqliteHandler.addXp(id, xp);
+			})
+		})
+	}
+
 	// Stopping the bot
 	if (key && key.name == 'escape') {
-		db.close((err) => {
-			if (err) {
-				console.error(err.message);
-			}
-			console.log('Closed the database connection.');
-		});
-		console.log('Bye-bye!');
-		process.exit();
+		await sqliteHandler.closeDatabase();
+		await console.log('Bye-bye!');
+		await process.exit();
 	}
 });
