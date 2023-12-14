@@ -43,6 +43,21 @@ readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY)
     process.stdin.setRawMode(true);
 
+async function addXp(id, xp) {
+    let currentXp;
+    await db.get(`SELECT xp FROM users WHERE id = (?)`, id, async function (err, row) {
+        currentXp = row.xp;
+        await console.log(`DEBUG: currentXp value is ${currentXp}`);
+        xp = +xp;
+        await console.log(`DEBUG: Sum of currentXp and xp to be added is ${currentXp + xp}`);
+        await db.run(`UPDATE users SET xp = (?) WHERE id = (?);`, [currentXp + xp, id], async function (err) {
+            if (err) {
+                return console.log(err.message);
+            }
+        });
+    });
+};
+
 console.log('Press P to print the SQL database. Press ESC to stop the bot.');
 
 process.stdin.on('keypress', async (chunk, key) => {
@@ -62,34 +77,20 @@ process.stdin.on('keypress', async (chunk, key) => {
         rl.question('Please enter the user\'s ID: ', (id) => {
             rl.question('Please enter the username: ', (username) => {
                 db.run(`INSERT INTO users (id, username) VALUES (${id}, '${username}');`);
-                rl.close();
-                return 0;
             });
         });
     }
     // Add XP to user
     if (key && key.name == 'a') {
-        rl.question('Please enter the user\'s ID: ', async (id) => {
-            let currentXp;
-            await db.get(`SELECT xp FROM users WHERE id = (?)`, id, async function (err, row) {
-                currentXp = row.xp;
-                await console.log(`DEBUG: currentXp value is ${currentXp}`);
-                await rl.question('Please enter the amount of XP to be added: ', async (xp) => {
-                    xp = +xp;
-                    await console.log(`DEBUG: Sum of currentXp and xp to be added is ${currentXp + xp}`);
-                    await db.run(`UPDATE users SET xp = (?) WHERE id = (?);`, [currentXp + xp, id], async function (err){
-                        if (err){
-                            return console.log(err.message);
-                        }
-                    });
-                });
+        await rl.question('Please enter the user\'s ID: ', async (id) => {
+            await rl.question('Please enter the amount of XP to be added: ', async (xp) => {
+                addXp(id, xp);
             });
         });
     }
     // Stopping the bot
     if (key && key.name == 'escape') {
         rl.close();
-
         db.close((err) => {
             if (err) {
                 console.error(err.message);
