@@ -70,13 +70,15 @@ process.stdin.on('keypress', async (chunk, key) => {
     // Add XP to user
     if (key && key.name == 'a') {
         rl.question('Please enter the user\'s ID: ', async (id) => {
-            const row = db.get(`SELECT xp FROM users WHERE id = (?)`, id);
-            const currentXp = row.xp;
-            console.log(`DEBUG: currentXp value is ${currentXp}`);
-            rl.question('Please enter the amount of XP to be added: ', (xp) => {
-                console.log(`DEBUG: Sum of currentXp and xp to be added is ${toString(parseInt(currentXp) + parseInt(xp))}`);
-                // db.run(`UPDATE users SET xp = ${toString(parseInt(currentXp) + parseInt(xp))} WHERE id = ${id};`);
-                return 0;
+            let currentXp;
+            await db.get(`SELECT xp FROM users WHERE id = (?)`, id, async function (err, row) {
+                currentXp = row.xp;
+                await console.log(`DEBUG: currentXp value is ${currentXp}`);
+                await rl.question('Please enter the amount of XP to be added: ', async (xp) => {
+                    xp = +xp;
+                    await console.log(`DEBUG: Sum of currentXp and xp to be added is ${currentXp + xp}`);
+                    // db.run(`UPDATE users SET xp = ${toString(parseInt(currentXp) + parseInt(xp))} WHERE id = ${id};`);
+                });
             });
         });
     }
