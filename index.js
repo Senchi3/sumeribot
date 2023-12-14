@@ -71,14 +71,26 @@ client.login(token);
 
 
 
+/// Database management
 
-/// UI
+// TODO: Insert all users to database when bot joins the server
 
-// Prepare readline interface
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+
+// TODO: Insert new users when they join the server
+
+
+// TODO: Rank reset: if rank roles are different to those on ranks.sqlite, remove all rank roles and replace for current AND reset all users XP
+
+
+// TODO: Periodically detect users in VC and add XP to them
+
+
+// TODO: Check user XP and send message on rank up
+
+
+// TODO: Apply role on rank up
+
+
 
 // Check every minute
 
@@ -93,8 +105,21 @@ setTimeout(() => {
 }, 10 * 1000);
 
 
-/// Shortcuts
 
+
+
+
+
+
+/// UI
+
+// Prepare readline interface
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+// Shortcuts
 
 // Prepare reading keys
 readline.emitKeypressEvents(process.stdin);
