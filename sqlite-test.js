@@ -77,7 +77,11 @@ process.stdin.on('keypress', async (chunk, key) => {
                 await rl.question('Please enter the amount of XP to be added: ', async (xp) => {
                     xp = +xp;
                     await console.log(`DEBUG: Sum of currentXp and xp to be added is ${currentXp + xp}`);
-                    // db.run(`UPDATE users SET xp = ${toString(parseInt(currentXp) + parseInt(xp))} WHERE id = ${id};`);
+                    await db.run(`UPDATE users SET xp = (?) WHERE id = (?);`, [currentXp + xp, id], async function (err){
+                        if (err){
+                            return console.log(err.message);
+                        }
+                    });
                 });
             });
         });
