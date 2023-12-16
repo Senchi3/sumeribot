@@ -11,7 +11,13 @@ const sqliteHandler = require('./sqlite-handler.js');
 
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const client = new Client({
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildVoiceStates
+	]
+});
 
 // Command handler
 
@@ -64,7 +70,7 @@ client.on(Events.InteractionCreate, async interaction => {
 // It makes some properties non-nullable.
 client.once(Events.ClientReady, async readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-	const guild = client.guilds.cache.get("1181323555917529159");
+	setInterval(() => distributeXp(), 10 * 60 * 1000);
 });
 
 // Log in to Discord with your client's token
@@ -74,10 +80,11 @@ client.login(token);
 
 /// Database management
 
-// TODO: Insert all users to database when bot joins the server
+// Insert all users to database when bot joins the server
 
 client.on('guildCreate', async (guild) => {
 	var memberList;
+
 	try {
 		const members = await guild.members.fetch();
 
@@ -91,22 +98,79 @@ client.on('guildCreate', async (guild) => {
     } catch (error) {
         console.error('Error fetching members:', error);
     }
-	memberList.forEach((user) => sqliteHandler.insertRow(user.id, user.username));
+	memberList.forEach(async (user) => await sqliteHandler.insertRow(user.id, user.username));
 });
 
-// TODO: Insert new users when they join the server
+// Insert new users when they join the server
 
+client.on('guildMemberAdd', async (member) => {
+    const { id, username } = member.user;
+    try {
+        await sqliteHandler.insertRow(id, username);
+        console.log(`User ${username} with ID ${id} added to the database.`);
+    } catch (error) {
+        console.error('Error adding user to the database:', error);
+    }
+});
 
 // TODO: Rank reset: if rank roles are different to those on ranks.sqlite, remove all rank roles and replace for current AND reset all users XP
 
 
-// TODO: Periodically detect users in VC and add XP to them
+// Periodically detect users in VC and add XP to them
+
+async function distributeXp() {
+    try {
+        // Loop through all guilds
+        client.guilds.cache.forEach(async (guild) => {
+            // Fetch all members in the guild
+            const members = await guild.members.fetch();
+
+            // Loop through all members
+            members.forEach((member) => {
+                // Check if the member is in a voice channel
+                const voiceChannel = member.voice.channel;
+                if (voiceChannel) {
+                    // Generate a random XP between 300 and 500
+                    const xp = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+
+                    // Call your addXp function here
+                    sqliteHandler.addXp(member.user.id, xp);
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error distributing XP:', error);
+    }
+}
 
 
 // TODO: Check user XP and send message on rank up
 
+// Function to check and apply ranks
+async function checkAndApplyRanks(guild, member) {
+    // Get the user's current XP from the database (replace with your actual method)
+    const currentXp = await sqliteHandler.getXPFromDatabase(member.user.id);
 
-// TODO: Apply role on rank up
+    // Get the ranks from the database (replace with your actual method)
+    const ranks = await sqliteHandler.getRanksFromDatabase();
+
+    // Check if the user has reached a rank threshold
+    for (const rank of ranks) {
+        if (currentXp >= rank.threshold) {
+            // User reached a rank threshold
+            const generalChannel = guild.channels.cache.find(channel => channel.name === 'general');
+            if (generalChannel && generalChannel.isText()) {
+                generalChannel.send(`Congratulations, ${member.user.username}! You reached the rank of ${rank.name}!`);
+            }
+
+            // Apply the role named after the rank
+            const role = guild.roles.cache.find(role => role.name === rank.name);
+            if (role) {
+                member.roles.add(role);
+            }
+        }
+    }
+}
 
 
 
@@ -145,12 +209,12 @@ readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY)
 	process.stdin.setRawMode(true);
 
-console.log('Press ESC to stop the bot.\nCommands available: printDatabase, insertRow, addXp');
+console.log('Press ESC to stop the bot.\nCommands available: printUsersDatabase, insertRow, addXp');
 
 process.stdin.on('keypress', async (chunk, key) => {
 
 	if (key && key.name == 'p') {
-		await sqliteHandler.printDatabase();
+		await sqliteHandler.printUsersDatabase();
 	}
 
 	if (key && key.name == 'i') {
@@ -171,7 +235,7 @@ process.stdin.on('keypress', async (chunk, key) => {
 
 	// Stopping the bot
 	if (key && key.name == 'escape') {
-		await sqliteHandler.closeDatabase();
+		await sqliteHandler.closeDatabases();
 		await console.log('Bye-bye!');
 		await process.exit();
 	}
