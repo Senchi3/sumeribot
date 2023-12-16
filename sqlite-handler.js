@@ -29,7 +29,13 @@ async function printDatabase() {
 };
 
 async function insertRow(id, username) {
-    db.run(`INSERT INTO users (id, username) VALUES (${id}, '${username}');`);
+    db.run(`INSERT OR IGNORE INTO users (id, username) VALUES (?, ?);`, [id, username], (err) => {
+        if (err) {
+            console.error('Error inserting row:', err);
+        } else {
+            console.log(`User ${username} with ID ${id} inserted successfully.`);
+        }
+    });
 }
 
 async function addXp(id, xp) {
