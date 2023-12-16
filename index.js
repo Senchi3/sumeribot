@@ -11,7 +11,7 @@ const sqliteHandler = require('./sqlite-handler.js');
 
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 
 // Command handler
 
@@ -62,8 +62,9 @@ client.on(Events.InteractionCreate, async interaction => {
 // When the client is ready, run this code (only once).
 // The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
 // It makes some properties non-nullable.
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+	const guild = client.guilds.cache.get("1181323555917529159");
 });
 
 // Log in to Discord with your client's token
@@ -75,11 +76,23 @@ client.login(token);
 
 // TODO: Insert all users to database when bot joins the server
 
-client.on(Events.GuildCreate, async (guild) => {
-	console.log(guild.members);
-	// await sqliteHandler.insertRow()
-})
+client.on('guildCreate', async (guild) => {
+	var memberList;
+	try {
+		const members = await guild.members.fetch();
 
+        // Extract IDs and usernames
+        memberList = members.map((member) => ({
+            id: member.user.id,
+            username: member.user.username,
+        }));
+
+        console.log(memberList);
+    } catch (error) {
+        console.error('Error fetching members:', error);
+    }
+	memberList.forEach((user) => sqliteHandler.insertRow(user.id, user.username));
+});
 
 // TODO: Insert new users when they join the server
 
@@ -120,8 +133,8 @@ setTimeout(() => {
 
 // Prepare readline interface
 const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+	input: process.stdin,
+	output: process.stdout
 });
 
 // Shortcuts
@@ -135,11 +148,11 @@ if (process.stdin.isTTY)
 console.log('Press ESC to stop the bot.\nCommands available: printDatabase, insertRow, addXp');
 
 process.stdin.on('keypress', async (chunk, key) => {
-	
+
 	if (key && key.name == 'p') {
 		await sqliteHandler.printDatabase();
 	}
-	
+
 	if (key && key.name == 'i') {
 		rl.question(`User to be inserted - ID: `, async (id) => {
 			rl.question(`User to be inserted - username: `, async (username) => {
