@@ -6,7 +6,7 @@ const path = require('node:path');
 const sqlite3 = require('sqlite3').verbose();
 
 // Open users.sqlite
-const usersDb = new sqlite3.Database('db/users.sqlite', (err) => {
+const db = new sqlite3.Database('db/users.sqlite', (err) => {
     if (err) {
         console.error(err.message);
     }
@@ -24,9 +24,9 @@ const ranksDb = new sqlite3.Database('db/ranks.sqlite', (err) => {
 
 /// SQLite functions
 
-async function printDatabase() {
-    usersDb.serialize(() => {
-        usersDb.each(`SELECT * FROM users;`, (err, row) => {
+async function printUsersDatabase() {
+    db.serialize(() => {
+        db.each(`SELECT * FROM users;`, (err, row) => {
             if (err) {
                 console.error(err.message);
             }
@@ -36,7 +36,7 @@ async function printDatabase() {
 };
 
 async function insertRow(id, username) {
-    usersDb.run(`INSERT OR IGNORE INTO users (id, username) VALUES (?, ?);`, [id, username], (err) => {
+    db.run(`INSERT OR IGNORE INTO users (id, username) VALUES (?, ?);`, [id, username], (err) => {
         if (err) {
             console.error('Error inserting row:', err);
         } else {
@@ -47,12 +47,12 @@ async function insertRow(id, username) {
 
 async function addXp(id, xp) {
     let currentXp;
-    await usersDb.get(`SELECT xp FROM users WHERE id = (?)`, id, async function (err, row) {
+    await db.get(`SELECT xp FROM users WHERE id = ${id}`, async function (err, row) {
         currentXp = row.xp;
         await console.log(`DEBUG: currentXp value is ${currentXp}`);
         xp = +xp;
         await console.log(`DEBUG: Sum of currentXp and xp to be added is ${currentXp + xp}`);
-        await usersDb.run(`UPDATE users SET xp = (?) WHERE id = (?);`, [currentXp + xp, id], async function (err) {
+        await db.run(`UPDATE users SET xp = (?) WHERE id = (?);`, [currentXp + xp, id], async function (err) {
             if (err) {
                 return console.log(err.message);
             }
@@ -62,7 +62,7 @@ async function addXp(id, xp) {
 
 async function getXP(id) {
     return new Promise((resolve, reject) => {
-        usersDb.get(`SELECT xp FROM users WHERE id = ?`, [id], (err, row) => {
+        db.get(`SELECT xp FROM users WHERE id = ?`, [id], (err, row) => {
             if (err) {
                 reject(err);
             } else {
@@ -85,7 +85,7 @@ async function getRanks() {
 }
 
 async function closeDatabases() {
-    await usersDb.close(async (err) => {
+    await db.close(async (err) => {
         if (err) {
             await console.error(err.message);
         }
@@ -99,4 +99,4 @@ async function closeDatabases() {
     });
 }
 
-module.exports = { printDatabase, insertRow, addXp, getXP, getRanks, closeDatabases };
+module.exports = { printUsersDatabase, insertRow, addXp, getXP, getRanks, closeDatabases };
