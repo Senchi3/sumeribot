@@ -70,7 +70,9 @@ client.on(Events.InteractionCreate, async interaction => {
 // It makes some properties non-nullable.
 client.once(Events.ClientReady, async readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
-	setInterval(() => distributeXp(), 10 * 60 * 1000);
+	// Wait 10 seconds, then run every 60 seconds
+	setTimeout(() => { setInterval(() => distributeXp(), 10 * 60 * 1000); }, 10 * 1000);
+
 });
 
 // Log in to Discord with your client's token
@@ -88,29 +90,29 @@ client.on('guildCreate', async (guild) => {
 	try {
 		const members = await guild.members.fetch();
 
-        // Extract IDs and usernames
-        memberList = members.map((member) => ({
-            id: member.user.id,
-            username: member.user.username,
-        }));
+		// Extract IDs and usernames
+		memberList = members.map((member) => ({
+			id: member.user.id,
+			username: member.user.username,
+		}));
 
-        console.log(memberList);
-    } catch (error) {
-        console.error('Error fetching members:', error);
-    }
+		console.log(memberList);
+	} catch (error) {
+		console.error('Error fetching members:', error);
+	}
 	memberList.forEach(async (user) => await sqliteHandler.insertRow(user.id, user.username));
 });
 
 // Insert new users when they join the server
 
 client.on('guildMemberAdd', async (member) => {
-    const { id, username } = member.user;
-    try {
-        await sqliteHandler.insertRow(id, username);
-        console.log(`User ${username} with ID ${id} added to the database.`);
-    } catch (error) {
-        console.error('Error adding user to the database:', error);
-    }
+	const { id, username } = member.user;
+	try {
+		await sqliteHandler.insertRow(id, username);
+		console.log(`User ${username} with ID ${id} added to the database.`);
+	} catch (error) {
+		console.error('Error adding user to the database:', error);
+	}
 });
 
 // TODO: Rank reset: if rank roles are different to those on ranks.sqlite, remove all rank roles and replace for current AND reset all users XP
@@ -119,57 +121,54 @@ client.on('guildMemberAdd', async (member) => {
 // Periodically detect users in VC and add XP to them
 
 async function distributeXp() {
-    try {
-        // Loop through all guilds
-        client.guilds.cache.forEach(async (guild) => {
-            // Fetch all members in the guild
-            const members = await guild.members.fetch();
+	try {
+		// Loop through all guilds
+		client.guilds.cache.forEach(async (guild) => {
+			// Fetch all members in the guild
+			const members = await guild.members.fetch();
 
-            // Loop through all members
-            members.forEach((member) => {
-                // Check if the member is in a voice channel
-                const voiceChannel = member.voice.channel;
-                if (voiceChannel) {
-                    // Generate a random XP between 300 and 500
-                    const xp = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
-
-                    // Call your addXp function here
-                    sqliteHandler.addXp(member.user.id, xp);
-                }
-            });
-        });
-    } catch (error) {
-        console.error('Error distributing XP:', error);
-    }
+			// Loop through all members
+			members.forEach(async (member) => {
+				// Check if the member is in a voice channel
+				const isInVoiceChannel = member.voice.channel;
+				if (isInVoiceChannel) {
+					// Generate a random XP between 300 and 500
+					const xp = await Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+					// Add XP
+					await sqliteHandler.addXp(member.user.id, xp);
+					// Check if new XP level warrants new rank
+					await checkAndApplyRanks(guild, member.user.id);
+				}
+			});
+		});
+	} catch (error) {
+		console.error('Error distributing XP:', error);
+	}
 }
-
-
-// TODO: Check user XP and send message on rank up
 
 // Function to check and apply ranks
 async function checkAndApplyRanks(guild, member) {
-    // Get the user's current XP from the database (replace with your actual method)
-    const currentXp = await sqliteHandler.getXPFromDatabase(member.user.id);
+	// Get the user's current XP from the database
+	const currentXp = await sqliteHandler.getXP(member.user.id);
 
-    // Get the ranks from the database (replace with your actual method)
-    const ranks = await sqliteHandler.getRanksFromDatabase();
+	// Get the ranks from the database
+	const ranks = await sqliteHandler.getRanks();
 
-    // Check if the user has reached a rank threshold
-    for (const rank of ranks) {
-        if (currentXp >= rank.threshold) {
-            // User reached a rank threshold
-            const generalChannel = guild.channels.cache.find(channel => channel.name === 'general');
-            if (generalChannel && generalChannel.isText()) {
-                generalChannel.send(`Congratulations, ${member.user.username}! You reached the rank of ${rank.name}!`);
-            }
-
-            // Apply the role named after the rank
-            const role = guild.roles.cache.find(role => role.name === rank.name);
-            if (role) {
-                member.roles.add(role);
-            }
-        }
-    }
+	// Check if the user has reached a rank threshold
+	for (const rank of ranks) {
+		if (currentXp >= rank.threshold) {
+			// User reached a rank threshold
+			const generalChannel = guild.channels.cache.find(channel => channel.name === 'general');
+			if (generalChannel && generalChannel.isText()) {
+				generalChannel.send(`¡Felicitaciones, ${member.user.username}! ¡Obtuviste el rango "${rank.name}"!`);
+			}
+			// Apply the role named after the rank
+			const role = guild.roles.cache.find(role => role.name === rank.name);
+			if (role) {
+				member.roles.add(role);
+			}
+		}
+	}
 }
 
 
@@ -179,13 +178,6 @@ async function checkAndApplyRanks(guild, member) {
 function getVoiceChannelUsers() {
 	console.log('Voice channels have been checked.');
 }
-
-// Wait 10 seconds, then run every 60 seconds
-
-setTimeout(() => {
-	setInterval(getVoiceChannelUsers, 60 * 1000);
-}, 10 * 1000);
-
 
 
 
