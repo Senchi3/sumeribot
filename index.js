@@ -132,6 +132,7 @@ async function distributeXp() {
 				// Check if the member is in a voice channel
 				const isInVoiceChannel = member.voice.channel;
 				if (isInVoiceChannel) {
+					console.log(`Member ${member.username} is in a voice channel!`)
 					// Generate a random XP between 300 and 500
 					const xp = await Math.floor(Math.random() * (500 - 300 + 1)) + 300;
 					// Add XP
@@ -169,14 +170,6 @@ async function checkAndApplyRanks(guild, member) {
 			}
 		}
 	}
-}
-
-
-
-// Check every minute
-
-function getVoiceChannelUsers() {
-	console.log('Voice channels have been checked.');
 }
 
 
