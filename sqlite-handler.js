@@ -21,6 +21,14 @@ const ranksDb = new sqlite3.Database('db/ranks.sqlite', (err) => {
     console.log('Connected to the ranks database from sqlite-handler.js')
 })
 
+// Open ranks.sqlite
+const serversDb = new sqlite3.Database('db/servers.sqlite', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+    console.log('Connected to the servers database from sqlite-handler.js')
+})
+
 
 /// SQLite functions
 
@@ -84,6 +92,30 @@ async function getRanks() {
     });
 }
 
+async function getGeneralChannelID(serverid) {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT generalchannelid FROM servers WHERE serverid = ?`, [serverid], (err, row) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(row ? row.generalchannelid : 0);
+            }
+        });
+    });
+}
+
+async function setGeneralChannelID(serverid, generalchannelid) {
+    db.run(`INSERT OR IGNORE INTO servers (serverid, generalchannelid) VALUES (?, ?);`, [serverid, generalchannelid], (err) => {
+        if (err) {
+            console.error('Error inserting row:', err);
+        } else {
+            console.log(`Guild ${serverid} with general channel ${generalchannelid} inserted successfully.`);
+        }
+    });
+}
+
+
+
 async function closeDatabases() {
     await db.close(async (err) => {
         if (err) {
@@ -97,6 +129,12 @@ async function closeDatabases() {
         }
         await console.log('Closed the ranks database connection.');
     });
+    await serversDb.close(async (err) => {
+        if (err) {
+            await console.error(err.message);
+        }
+        await console.log('Closed the server database connection.');
+    });
 }
 
-module.exports = { printUsersDatabase, insertRow, addXp, getXP, getRanks, closeDatabases };
+module.exports = { printUsersDatabase, insertRow, addXp, getXP, getRanks, getGeneralChannelID, setGeneralChannelID, closeDatabases };

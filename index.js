@@ -123,54 +123,69 @@ client.on('guildMemberAdd', async (member) => {
 async function distributeXp() {
 	try {
 		// Loop through all guilds
-		client.guilds.cache.forEach(async (guild) => {
+		await Promise.all(client.guilds.cache.map(async (guild) => {
 			// Fetch all members in the guild
 			const members = await guild.members.fetch();
 
 			// Loop through all members
-			members.forEach(async (member) => {
+			await Promise.all(members.map(async (member) => {
 				// Check if the member is in a voice channel
 				const isInVoiceChannel = member.voice.channel;
 				if (isInVoiceChannel) {
-					console.log(`Member ${member.username} is in a voice channel!`)
+					console.log(`Member ${member.user.username} is in a voice channel!`);
 					// Generate a random XP between 300 and 500
-					const xp = await Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+					const xp = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
 					// Add XP
 					await sqliteHandler.addXp(member.user.id, xp);
-					// Check if new XP level warrants new rank
-					await checkAndApplyRanks(guild, member.user.id);
+					// Check if new XP level warrants a new rank
+					await checkAndApplyRanks(guild, member);
 				}
-			});
-		});
+			}));
+		}));
 	} catch (error) {
 		console.error('Error distributing XP:', error);
 	}
 }
 
+
 // Function to check and apply ranks
 async function checkAndApplyRanks(guild, member) {
-	// Get the user's current XP from the database
-	const currentXp = await sqliteHandler.getXP(member.user.id);
+    // Ensure member is a valid GuildMember object
+    if (!member || !member.user) {
+        console.error('Invalid member object:', member);
+        return;
+    }
 
-	// Get the ranks from the database
-	const ranks = await sqliteHandler.getRanks();
+    // Get the user's current XP from the database
+    const currentXp = await sqliteHandler.getXP(member.user.id);
 
-	// Check if the user has reached a rank threshold
-	for (const rank of ranks) {
-		if (currentXp >= rank.threshold) {
-			// User reached a rank threshold
-			const generalChannel = guild.channels.cache.find(channel => channel.name === 'general');
-			if (generalChannel && generalChannel.isText()) {
-				generalChannel.send(`¡Felicitaciones, ${member.user.username}! ¡Obtuviste el rango "${rank.name}"!`);
-			}
-			// Apply the role named after the rank
-			const role = guild.roles.cache.find(role => role.name === rank.name);
-			if (role) {
-				member.roles.add(role);
-			}
-		}
-	}
+    // Get the ranks from the database
+    const ranks = await sqliteHandler.getRanks();
+
+    // Check if the user has reached a rank threshold
+    for (const rank of ranks) {
+        // Do nothing if rank is "None"
+        if (rank.threshold == 0) {
+            return;
+        }
+        if (currentXp >= rank.threshold) {
+            // User reached a rank threshold
+            const generalChannelId = await sqliteHandler.getGeneralChannelID(guild.id);
+            const generalChannel = await client.channels.fetch(generalChannelId);
+
+            if (generalChannel && generalChannel.isText()) {
+                await generalChannel.send(`¡Felicitaciones, ${member.user.username}! ¡Obtuviste el rango "${rank.name}"!`);
+            }
+
+            // Apply the role named after the rank
+            const role = guild.roles.cache.find(role => role.name === rank.name);
+            if (role) {
+                member.roles.add(role);
+            }
+        }
+    }
 }
+
 
 
 
